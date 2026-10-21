@@ -1,0 +1,14 @@
+# Mixed training config.
+# Each entry sets a virtual sampling budget via len_train; larger values are
+# sampled more often when inside_random=true.
+inside_random: true
+datasets:
+  - type: dl3dv
+    base_path: data/processed_dl3dv
+    len_train: 100000
+    splits: [1K, 2K, 3K, 4K, 5K, 6K, 7K]
+    benchmark_tier: DL3DV-10K-Benchmark
+  - type: re10k
+    base_path: data/processed_re10k
+    len_train: 100000
+    splits: [train]
