@@ -4,11 +4,11 @@ Expects ``--data_root`` like::
 
     processed_re10k/benchmark/
     ├── images/<seq_id>/*.png
-    ├── images/<seq_id>/context_target_6.json
     ├── metadata/<seq_id>.json   # frames: fxfycxcy (px) + w2c (4x4)
     └── full_list.txt
 
-Also accepts a flat layout ``<data_root>/<seq_id>/{images,metadata.json,context_target_6.json}``.
+Context and target indices are ``evaluation/re10k/splits/<seq_id>.json``.
+Also accepts a flat layout ``<data_root>/<seq_id>/{images,metadata.json}``.
 """
 
 from __future__ import annotations
@@ -26,6 +26,7 @@ IMAGE_SUFFIXES = {".png", ".jpg", ".jpeg", ".bmp", ".tif", ".tiff", ".webp"}
 
 _REPO_ROOT = Path(__file__).resolve().parents[2]
 DATA_ROOT = _REPO_ROOT / "data" / "processed_re10k" / "benchmark"
+SPLITS_DIR = Path(__file__).resolve().parent / "splits"
 DEFAULT_EXP_ROOT = _REPO_ROOT / "outputs" / "evals" / "re10k"
 # Most common RE10K resolution in mutou/DavidYan exports (fallback only).
 DEFAULT_ORIG_H = 360
@@ -132,7 +133,7 @@ class SceneSplit:
 @dataclass(frozen=True)
 class SceneLayout:
     scene_hash: str
-    scene_dir: Path  # directory containing context_target_6.json (usually images/<seq>)
+    scene_dir: Path  # usually images/<seq>
     images_dir: Path
     metadata_path: Path
     context_target_path: Path
@@ -222,12 +223,23 @@ def find_metadata_path(scene_dir: Path, scene_hash: str | None = None) -> Path |
     return None
 
 
+def split_file(scene_hash: str) -> Path:
+    return SPLITS_DIR / f"{scene_hash}.json"
+
+
+def load_scene_split(scene_hash: str) -> dict:
+    path = split_file(scene_hash)
+    if not path.is_file():
+        raise FileNotFoundError(f"Missing eval split for {scene_hash}: {path}")
+    return json.loads(path.read_text())
+
+
 def resolve_scene_layout(scene_dir: Path) -> SceneLayout:
-    """Resolve a scene directory that contains ``context_target_6.json``."""
+    """Resolve a scene directory whose id has a shipped split."""
     scene_dir = scene_dir.resolve()
-    context_target_path = scene_dir / "context_target_6.json"
+    context_target_path = split_file(scene_dir.name)
     if not context_target_path.is_file():
-        raise FileNotFoundError(f"Missing context_target_6.json in {scene_dir}")
+        raise FileNotFoundError(f"Missing eval split for {scene_dir.name}: {context_target_path}")
 
     scene_hash = scene_dir.name
     metadata_path = find_metadata_path(scene_dir, scene_hash)
@@ -237,7 +249,6 @@ def resolve_scene_layout(scene_dir: Path) -> SceneLayout:
     if (scene_dir / "images").is_dir():
         images_dir = scene_dir / "images"
     else:
-        # context_target lives inside images/<seq>
         images_dir = scene_dir
 
     try:
@@ -267,16 +278,16 @@ def discover_scenes(data_root: Path) -> list[SceneLayout]:
     images_root = data_root / "images"
     if images_root.is_dir():
         for entry in sorted(images_root.iterdir()):
-            if entry.is_dir() and (entry / "context_target_6.json").is_file():
+            if entry.is_dir() and split_file(entry.name).is_file():
                 candidates.append(entry)
     for entry in sorted(data_root.iterdir()):
         if not entry.is_dir() or entry.name in {"images", "metadata"}:
             continue
-        if (entry / "context_target_6.json").is_file():
+        if split_file(entry.name).is_file():
             candidates.append(entry)
             continue
         for sub in sorted(entry.iterdir()):
-            if sub.is_dir() and (sub / "context_target_6.json").is_file():
+            if sub.is_dir() and split_file(sub.name).is_file():
                 candidates.append(sub)
 
     # Deduplicate by resolved path.
@@ -297,7 +308,7 @@ def discover_scenes(data_root: Path) -> list[SceneLayout]:
             continue
     if not scenes:
         raise FileNotFoundError(
-            f"No RE10K scenes with context_target_6.json found under {data_root}"
+            f"No RE10K scenes with a split in {SPLITS_DIR} under {data_root}"
         )
     return scenes
 

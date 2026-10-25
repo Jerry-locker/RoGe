@@ -12,10 +12,7 @@ build/
 *.bin
 *.ckpt
 
-output/
-demo_output/
 wandb/
-ckpt/
 /models
 /data
 /outputs
@@ -27,8 +24,5 @@ ckpt/
 *.swo
 *~
 
-scannetpp_output/
-arkitscenes_output/
-arkitscenes_highres_output/
-
 .cache/
+

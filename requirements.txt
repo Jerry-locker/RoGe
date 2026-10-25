@@ -1,0 +1,24 @@
+# roge: training, inference, and scripts/prepare_models.sh
+--extra-index-url https://download.pytorch.org/whl/cu128
+
+torch==2.11.0+cu128
+torchvision==0.26.0+cu128
+xformers==0.0.35
+accelerate==1.13.0
+deepspeed==0.19.1
+transformers==5.9.0
+peft==0.19.1
+timm==1.0.25
+modelscope==1.37.1
+einops
+safetensors
+opencv-python
+pillow
+numpy<2
+imageio
+imageio-ffmpeg
+ftfy
+regex
+sentencepiece
+tqdm
+tensorboard

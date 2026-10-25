@@ -4,7 +4,7 @@
 # Usage:
 #   bash evaluation/dl3dv/dl3dv_eval.sh \
 #     --checkpoint_path /path/to/step-500.safetensors \
-#     --output_dir /path/to/dl3dv_eval
+#     --output_dir outputs/dl3dv_eval
 #
 # Optional env: LAGERNVS_CKPT, MLP_WORKER_NUM / MLP_ROLE_INDEX / MLP_WORKER_GPU
 set -euo pipefail
@@ -19,24 +19,25 @@ export DIFFSYNTH_SKIP_DOWNLOAD=true
 unset http_proxy https_proxy HTTP_PROXY HTTPS_PROXY all_proxy ALL_PROXY
 
 CHECKPOINT_PATH=""
-OUTPUT_DIR=""
+OUTPUT_DIR="${REPO_ROOT}/outputs/dl3dv_eval"
 while [[ $# -gt 0 ]]; do
   case "$1" in
     --checkpoint_path) CHECKPOINT_PATH="$2"; shift 2 ;;
     --output_dir) OUTPUT_DIR="$2"; shift 2 ;;
     -h|--help)
-      echo "Usage: bash evaluation/dl3dv/dl3dv_eval.sh --checkpoint_path PATH --output_dir PATH" >&2
+      echo "Usage: bash evaluation/dl3dv/dl3dv_eval.sh --checkpoint_path PATH [--output_dir PATH]" >&2
+      echo "  default --output_dir: ${REPO_ROOT}/outputs/dl3dv_eval" >&2
       exit 0
       ;;
     *)
       echo "error: unknown argument: $1" >&2
-      echo "Usage: bash evaluation/dl3dv/dl3dv_eval.sh --checkpoint_path PATH --output_dir PATH" >&2
+      echo "Usage: bash evaluation/dl3dv/dl3dv_eval.sh --checkpoint_path PATH [--output_dir PATH]" >&2
       exit 1
       ;;
   esac
 done
-if [[ -z "${CHECKPOINT_PATH}" || -z "${OUTPUT_DIR}" ]]; then
-  echo "error: --checkpoint_path and --output_dir are required" >&2
+if [[ -z "${CHECKPOINT_PATH}" ]]; then
+  echo "error: --checkpoint_path is required" >&2
   exit 1
 fi
 

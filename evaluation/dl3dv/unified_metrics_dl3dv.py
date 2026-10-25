@@ -15,7 +15,7 @@ For each scene under ``--exp_root`` (e.g. outputs/evals/dl3dv):
   features are pooled across all scenes into one GT / Pred distribution,
   then a single Frechet distance is computed (standard dataset-level FID/FVD)
 
-Splits come from ``context_target_6.json`` under ``--data_root``.
+Splits come from ``evaluation/dl3dv/splits``.
 Cameras for TSED come from ``transforms.json`` under the same scene data dir.
 Expects ``<exp_root>/<scene>/aft_postprocess/{gt,pred}/<frame_idx:06d>.png``.
 

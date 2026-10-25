@@ -15,6 +15,7 @@ IMAGE_SUFFIXES = {".png", ".jpg", ".jpeg", ".bmp", ".tif", ".tiff", ".webp"}
 
 _REPO_ROOT = Path(__file__).resolve().parents[2]
 DATA_ROOT = _REPO_ROOT / "data" / "processed_dl3dv" / "test"
+SPLITS_DIR = Path(__file__).resolve().parent / "splits"
 DEFAULT_EXP_ROOT = _REPO_ROOT / "outputs" / "evals" / "dl3dv"
 DEFAULT_ORIG_H = 540
 DEFAULT_ORIG_W = 960
@@ -164,28 +165,59 @@ def find_transforms_path(scene_dir: Path) -> Path | None:
     return None
 
 
+def split_file(scene_hash: str) -> Path:
+    return SPLITS_DIR / f"{scene_hash}.json"
+
+
+def load_scene_split(scene_hash: str) -> dict:
+    path = split_file(scene_hash)
+    if not path.is_file():
+        raise FileNotFoundError(f"Missing eval split for {scene_hash}: {path}")
+    return json.loads(path.read_text())
+
+
+def _scene_dirs(data_root: Path) -> list[Path]:
+    """Scene directories under ``data_root`` that have a shipped split."""
+    found: list[Path] = []
+
+    def consider(path: Path) -> None:
+        if find_transforms_path(path) is None or not split_file(path.name).is_file():
+            return
+        found.append(path)
+
+    consider(data_root)
+    if not data_root.is_dir():
+        return found
+    for entry in sorted(data_root.iterdir()):
+        if not entry.is_dir():
+            continue
+        if find_transforms_path(entry) is not None:
+            consider(entry)
+            continue
+        for sub in sorted(entry.iterdir()):
+            if sub.is_dir():
+                consider(sub)
+    seen: set[Path] = set()
+    unique: list[Path] = []
+    for path in found:
+        key = path.resolve()
+        if key in seen:
+            continue
+        seen.add(key)
+        unique.append(path)
+    return unique
+
+
 def discover_split_index(data_root: Path) -> dict[str, SceneSplit]:
     data_root = data_root.resolve()
     if not data_root.is_dir():
         raise FileNotFoundError(f"DATA_ROOT not found: {data_root}")
 
-    candidates: list[Path] = []
-    for entry in sorted(data_root.iterdir()):
-        if not entry.is_dir():
-            continue
-        if (entry / "context_target_6.json").exists():
-            candidates.append(entry)
-            continue
-        for sub in sorted(entry.iterdir()):
-            if sub.is_dir() and (sub / "context_target_6.json").exists():
-                candidates.append(sub)
-
     index: dict[str, SceneSplit] = {}
-    for scene_dir in candidates:
-        split = json.loads((scene_dir / "context_target_6.json").read_text())
-        scene_hash = scene_dir.name
-        index[scene_hash] = SceneSplit(
-            scene_hash=scene_hash,
+    for scene_dir in _scene_dirs(data_root):
+        split = load_scene_split(scene_dir.name)
+        index[scene_dir.name] = SceneSplit(
+            scene_hash=scene_dir.name,
             context_indices=[int(x) for x in split["context_idx"]],
             target_indices=[int(x) for x in split["target_idx"]],
             data_dir=scene_dir,
@@ -193,7 +225,7 @@ def discover_split_index(data_root: Path) -> dict[str, SceneSplit]:
         )
     if not index:
         raise FileNotFoundError(
-            f"No scenes with context_target_6.json under {data_root}"
+            f"No DL3DV scenes with a split in {SPLITS_DIR} under {data_root}"
         )
     return index
 

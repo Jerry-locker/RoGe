@@ -1,0 +1,21 @@
+# roge-metrics: evaluation/*/*_run_metrics.sh and evaluation/*/*_run_ape.sh
+--extra-index-url https://download.pytorch.org/whl/cu121
+
+torch==2.4.1+cu121
+torchvision==0.19.1+cu121
+pytorch3d @ https://dl.fbaipublicfiles.com/pytorch3d/packaging/wheels/py310_cu121_pyt241/pytorch3d-0.7.8-cp310-cp310-linux_x86_64.whl
+transformers==4.33.2
+tokenizers==0.13.3
+peft==0.5.0
+timm==1.0.12
+open-clip-torch==3.2.0
+numpy<2
+opencv-python
+pillow
+scipy
+einops
+safetensors
+lpips==0.1.4
+dreamsim==0.2.1
+met3r==1.0.1
+evo==1.35.2

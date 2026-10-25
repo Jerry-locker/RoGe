@@ -4,7 +4,7 @@
 Pipeline per scene:
 1. Undistort all frames (540x960).
 2. Cover-crop to 192x336 (+ matching intrinsics).
-3. Generate all non-context frames in ordered chunks (context from context_target_6.json).
+3. Generate all non-context frames in ordered chunks (context from evaluation/dl3dv/splits).
 4. Save bef_postprocess (192x336) and aft_postprocess (192x192 column-crop eval FOV).
 5. No metrics — output layout matches dl3dv_3dgs_exp.py for fair comparison.
 """
@@ -38,6 +38,7 @@ import numpy as np
 from PIL import Image
 
 from diffsynth.model import RoGe, preprocess_images_and_intrinsics, resize_and_center_crop
+from dl3dv_eval_common import SPLITS_DIR, load_scene_split, split_file
 
 
 SCRIPT_DIR = Path(__file__).resolve().parent
@@ -154,16 +155,22 @@ def _discover_scenes(inputs: list[Path]) -> list[Path]:
     scenes: list[Path] = []
     for path in inputs:
         if (path / "gaussian_splat" / "transforms.json").is_file():
-            scenes.append(path)
+            if split_file(path.name).is_file():
+                scenes.append(path)
             continue
         if not path.is_dir():
             raise NotADirectoryError(f"Scene root is not a directory: {path}")
         for child in sorted(path.iterdir()):
-            if child.is_dir() and (child / "gaussian_splat" / "transforms.json").is_file():
+            if (
+                child.is_dir()
+                and (child / "gaussian_splat" / "transforms.json").is_file()
+                and split_file(child.name).is_file()
+            ):
                 scenes.append(child)
     if not scenes:
         raise FileNotFoundError(
-            "No DL3DV benchmark scenes found. Expected <scene>/gaussian_splat/transforms.json"
+            "No DL3DV benchmark scenes found. Expected <scene>/gaussian_splat/transforms.json "
+            f"for a split under {SPLITS_DIR}"
         )
     return scenes
 
@@ -310,11 +317,7 @@ def _load_scene_frames(scene_dir: Path, *, opengl_to_opencv: bool) -> list[Frame
 
 
 def _read_context_indices(scene_dir: Path) -> list[int]:
-    path = scene_dir / "context_target_6.json"
-    if not path.is_file():
-        raise FileNotFoundError(f"Missing context_target_6.json: {path}")
-    with path.open("r", encoding="utf-8") as f:
-        data = json.load(f)
+    data = load_scene_split(scene_dir.name)
     return [int(x) for x in data["context_idx"]]
 
 

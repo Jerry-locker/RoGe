@@ -3,9 +3,9 @@
 #
 # Usage:
 #   bash training/train_480_832.sh \
-#     --output_path /path/exp_highres \
-#     --dataset_cache_dir /path/cache \
-#     --resume_ckpt_path /path/exp_base/step-15000.safetensors
+#     --output_path outputs/exp_highres \
+#     --dataset_cache_dir data/cache_re10k_dl3dv \
+#     --resume_ckpt_path outputs/exp_base/step-15000.safetensors
 #
 # Optional env: LAGERNVS_CKPT, USE_DEEPSPEED_ZERO2=0, MLP_* (multi-node)
 set -euo pipefail
@@ -16,29 +16,28 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"
 cd "${REPO_ROOT}"
 
-OUTPUT_PATH=""
-DATASET_CACHE_DIR=""
-RESUME_CKPT_PATH=""
+OUTPUT_PATH="${REPO_ROOT}/outputs/exp_highres"
+DATASET_CACHE_DIR="${REPO_ROOT}/data/cache_re10k_dl3dv"
+RESUME_CKPT_PATH="${REPO_ROOT}/outputs/exp_base/step-15000.safetensors"
 while [[ $# -gt 0 ]]; do
   case "$1" in
     --output_path) OUTPUT_PATH="$2"; shift 2 ;;
     --dataset_cache_dir) DATASET_CACHE_DIR="$2"; shift 2 ;;
     --resume_ckpt_path) RESUME_CKPT_PATH="$2"; shift 2 ;;
     -h|--help)
-      echo "Usage: bash training/train_480_832.sh --output_path PATH --dataset_cache_dir PATH --resume_ckpt_path PATH" >&2
+      echo "Usage: bash training/train_480_832.sh [--output_path PATH] [--dataset_cache_dir PATH] [--resume_ckpt_path PATH]" >&2
+      echo "  default --output_path: ${REPO_ROOT}/outputs/exp_highres" >&2
+      echo "  default --dataset_cache_dir: ${REPO_ROOT}/data/cache_re10k_dl3dv" >&2
+      echo "  default --resume_ckpt_path: ${REPO_ROOT}/outputs/exp_base/step-15000.safetensors" >&2
       exit 0
       ;;
     *)
       echo "error: unknown argument: $1" >&2
-      echo "Usage: bash training/train_480_832.sh --output_path PATH --dataset_cache_dir PATH --resume_ckpt_path PATH" >&2
+      echo "Usage: bash training/train_480_832.sh [--output_path PATH] [--dataset_cache_dir PATH] [--resume_ckpt_path PATH]" >&2
       exit 1
       ;;
   esac
 done
-if [[ -z "${OUTPUT_PATH}" || -z "${DATASET_CACHE_DIR}" || -z "${RESUME_CKPT_PATH}" ]]; then
-  echo "error: --output_path, --dataset_cache_dir, and --resume_ckpt_path are required" >&2
-  exit 1
-fi
 
 LAGERNVS_CKPT="${LAGERNVS_CKPT:-${REPO_ROOT}/models/lagernvs/model.pt}"
 MIXED_CONFIG="${SCRIPT_DIR}/dataset.yaml"
@@ -46,6 +45,18 @@ MIXED_CONFIG="${SCRIPT_DIR}/dataset.yaml"
 USE_DEEPSPEED_ZERO2="${USE_DEEPSPEED_ZERO2:-1}"
 if [[ "${USE_DEEPSPEED_ZERO2}" == "1" ]]; then
   ACCELERATE_CONFIG="training/deepspeed_config.yaml"
+  # DeepSpeed reads nvcc at import. A wheel install has no CUDA toolkit.
+  if [[ ! -x "${CUDA_HOME:-}/bin/nvcc" ]] && ! command -v nvcc >/dev/null 2>&1; then
+    cuda_ver="$(python -c 'import torch; print(torch.version.cuda)')"
+    mkdir -p "${HOME}/fake_cuda/bin"
+    cat > "${HOME}/fake_cuda/bin/nvcc" << EOF
+#!/bin/bash
+echo "Cuda compilation tools, release ${cuda_ver}, V${cuda_ver}.0"
+EOF
+    chmod +x "${HOME}/fake_cuda/bin/nvcc"
+    export CUDA_HOME="${HOME}/fake_cuda"
+    export PATH="${CUDA_HOME}/bin:${PATH}"
+  fi
 else
   ACCELERATE_CONFIG="training/ddp_config.yaml"
 fi

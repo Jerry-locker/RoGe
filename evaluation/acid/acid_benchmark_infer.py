@@ -2,8 +2,8 @@
 """ACID benchmark batch inference for RoGe (w/ LagerNVS).
 
 Same pipeline as ``re10k_benchmark_infer.py`` (LagerNVS-layout images +
-metadata + context_target_6.json). Uses ``processed_acid/benchmark``;
-context has 9 k-means views; all non-context frames are generated as targets.
+metadata). Uses ``processed_acid/benchmark`` and ``evaluation/acid/splits``.
+Context has 9 views; all non-context frames are generated as targets.
 
 After inference, rank 0 runs ``unified_metrics_acid.py`` + ``unified_ape_acid.py``.
 """
@@ -58,6 +58,8 @@ SCRIPT_DIR = Path(__file__).resolve().parent
 REPO_ROOT = SCRIPT_DIR.parents[1]
 infer.DATA_ROOT = acid.DATA_ROOT
 infer.DATA_ROOT_DEFAULT = str(acid.DATA_ROOT)
+infer.SPLITS_DIR = acid.SPLITS_DIR
+infer.split_file = acid.split_file
 infer.resolve_scene_layout = acid.resolve_scene_layout
 infer.discover_scenes = acid.discover_scenes
 infer.resolve_frame_path = acid.resolve_frame_path

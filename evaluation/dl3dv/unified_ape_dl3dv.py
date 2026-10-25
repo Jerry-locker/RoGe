@@ -9,7 +9,7 @@ For each scene under ``--exp_root``:
   camera-center distances), then Sim(3) Umeyama (``align + correct_scale``)
 * Per-scene chunk mean (81-frame videos by default), then dataset mean
 
-Splits come from ``context_target_6.json`` under ``--data_root``.
+Splits come from ``evaluation/dl3dv/splits``.
 Expects ``<exp_root>/<scene>/aft_postprocess/{gt,pred}/<frame_idx:06d>.png``.
 
 Multi-GPU: pass ``--gpus 0,1,2,3`` (or rely on auto-detected visible GPUs) to

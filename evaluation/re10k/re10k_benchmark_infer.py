@@ -5,7 +5,7 @@ Pipeline per scene (LagerNVS-layout RE10K under processed_re10k/benchmark):
 1. Load frames + metadata (fxfycxcy / w2c; no distortion).
 2. Cover-crop to 192x336 (+ matching intrinsics) for RoGe.
 3. Generate all non-context frames in ordered chunks (context from
-   context_target_6.json); LagerNVS condition uses native-resolution context.
+   evaluation/re10k/splits); LagerNVS condition uses native-resolution context.
 4. Column-crop 192x336 -> 192x192 eval FOV using per-scene native resolution.
 5. Rank 0 runs unified_metrics_re10k.py + unified_ape_re10k.py.
 """
@@ -41,9 +41,11 @@ from PIL import Image
 from diffsynth.model import RoGe
 from re10k_eval_common import (
     DATA_ROOT,
+    SPLITS_DIR,
     discover_scenes,
     resolve_frame_path,
     resolve_scene_layout,
+    split_file,
 )
 
 
@@ -187,7 +189,7 @@ def _expand_paths(values: Iterable[str]) -> list[Path]:
 def _discover_scenes(inputs: list[Path]) -> list[Path]:
     scenes: list[Path] = []
     for path in inputs:
-        if (path / "context_target_6.json").is_file():
+        if path.is_dir() and split_file(path.name).is_file():
             scenes.append(path)
             continue
         if not path.is_dir():
@@ -196,8 +198,8 @@ def _discover_scenes(inputs: list[Path]) -> list[Path]:
             scenes.append(layout.scene_dir)
     if not scenes:
         raise FileNotFoundError(
-            "No RE10K benchmark scenes found. Expected context_target_6.json "
-            "under processed_re10k/benchmark/images/<seq>/"
+            "No RE10K benchmark scenes found. Expected images/<seq>/ under "
+            f"processed_re10k/benchmark for a split in {SPLITS_DIR}"
         )
     return scenes
 

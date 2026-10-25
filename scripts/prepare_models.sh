@@ -9,6 +9,9 @@
 #   models/Wan-AI/Wan2.1-T2V-1.3B/         umT5 tokenizer
 #   models/lagernvs/model.pt               LagerNVS (gated Hugging Face)
 #   models/vggt-omega/vggt_omega_1b_512.pt VGGT-Omega (gated Hugging Face)
+#   models/roge/highres_step-500.safetensors
+#   models/roge/lowres_step-15000.safetensors
+#                                          released RoGe checkpoints
 #   models/fvd/i3d_torchscript.pt          FVD I3D
 #   models/dreamsim/                       DreamSim ensemble cache
 #   models/met3r/                          MEt3R offline weights
@@ -56,6 +59,7 @@ mkdir -p \
   "${MODELS}/dreamsim" \
   "${MODELS}/lagernvs" \
   "${MODELS}/vggt-omega" \
+  "${MODELS}/roge" \
   "${MODELS}/torch_hub/checkpoints" \
   "${MODELS}/met3r/mast3r" \
   "${MODELS}/met3r/torch_hub_checkpoints" \
@@ -161,6 +165,8 @@ models = sys.argv[1]
 jobs = [
     ("facebook/lagernvs_general_512", "model.pt", f"{models}/lagernvs"),
     ("facebook/VGGT-Omega", "vggt_omega_1b_512.pt", f"{models}/vggt-omega"),
+    ("Jerry-locker/RoGe", "highres_step-500.safetensors", f"{models}/roge"),
+    ("Jerry-locker/RoGe", "lowres_step-15000.safetensors", f"{models}/roge"),
 ]
 for repo_id, filename, dest in jobs:
     print(f"Hugging Face {repo_id}/{filename}")
